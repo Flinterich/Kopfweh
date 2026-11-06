@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Kopfweh">
+<meta name="theme-color" content="#EEF2F5">
+<title>Kopfweh-Tagebuch</title>
+<style>
+:root{
+  color-scheme: light dark;
+  --bg:#EEF2F5; --surface:#FFFFFF; --ink:#1E2A36; --muted:#5F6E7C; --line:#D5DDE5;
+  --zone:#D9E1E9; --zone-hover:#C5D0DB; --accent:#2B5C8A; --accent-ink:#FFFFFF;
+  --danger:#B23A3A;
+  --ph-none:#8A97A3; --ph-mens:#C2413B; --ph-foll:#3E8E5C; --ph-ovu:#D09A1E; --ph-lut:#7A4FA8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121A22; --surface:#1B2631; --ink:#E6ECF2; --muted:#9AA8B5; --line:#2C3A47;
+    --zone:#2A3846; --zone-hover:#34465A; --accent:#6FA3D6; --accent-ink:#0E1620;
+    --danger:#E06A6A; --ph-none:#7D8A96;
+  }
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{margin:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family: ui-rounded, "SF Pro Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size:16px; line-height:1.45; -webkit-tap-highlight-color:transparent;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+main{max-width:560px;margin:0 auto;padding:12px 16px 96px}
+h1{font-size:1.6rem;font-weight:700;letter-spacing:-.01em;margin:8px 0 2px}
+h2{font-size:1.05rem;font-weight:650;margin:22px 0 10px}
+.sub{color:var(--muted);margin:0 0 6px;font-size:.92rem}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* Intensität: das zentrale Element */
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.scale button{
+  aspect-ratio:1/1; border:none; border-radius:16px; font-size:1.35rem; font-weight:700;
+  background:var(--c); color:#fff; text-shadow:0 1px 2px rgba(0,0,0,.25);
+  opacity:.55; transition:transform .12s, opacity .12s;
+}
+.scale button.on{opacity:1;transform:scale(1.06);box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--c)}
+.scale-ends{display:flex;justify-content:space-between;color:var(--muted);font-size:.85rem;margin-top:6px}
+
+/* Kopf */
+.headwrap{background:var(--surface);border-radius:20px;padding:12px 12px 6px}
+#head{display:block;width:100%;max-width:260px;margin:0 auto;touch-action:manipulation}
+#head .z{fill:var(--zone);stroke:var(--surface);stroke-width:2.5;cursor:pointer;transition:fill .12s}
+#head .z.on{fill:var(--accent)}
+#head .outline{fill:none;stroke:var(--muted);stroke-width:1.5;pointer-events:none}
+#head .deco{fill:var(--zone);stroke:var(--muted);stroke-width:1.5}
+#head text{font-size:9px;fill:var(--muted);pointer-events:none;text-anchor:middle;dominant-baseline:middle}
+#head text.lr{font-size:12px;font-weight:700}
+.caption{text-align:center;color:var(--muted);font-size:.8rem;margin:2px 0 8px}
+
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  border:1.5px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:8px 13px;font-size:.92rem;
+}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--pc)}
+.chip.on .dot{box-shadow:0 0 0 2px var(--accent-ink)}
+
+input[type=text],input[type=datetime-local]{
+  width:100%;font:inherit;color:var(--ink);background:var(--surface);
+  border:1.5px solid var(--line);border-radius:12px;padding:11px 12px;margin-top:10px;
+  -webkit-appearance:none;appearance:none;min-height:46px;
+}
+.primary{
+  display:block;width:100%;margin-top:24px;border:none;border-radius:16px;
+  background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:1.1rem;padding:16px;
+}
+.primary:disabled{opacity:.4}
+
+/* Tabs unten */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);
+  border-top:1px solid var(--line);display:flex;justify-content:center;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+nav button{flex:1;max-width:186px;border:none;background:none;padding:12px 4px 10px;font-size:.92rem;color:var(--muted)}
+nav button.on{color:var(--accent);font-weight:700}
+nav svg{display:block;margin:0 auto 2px;width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* Verlauf */
+.seg{display:flex;background:var(--zone);border-radius:12px;padding:3px;gap:2px}
+.seg button{flex:1;border:none;background:none;border-radius:9px;padding:8px 2px;font-size:.88rem}
+.seg button.on{background:var(--surface);font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.card{background:var(--surface);border-radius:18px;padding:14px;margin-top:12px}
+canvas{display:block;width:100%;height:230px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.8rem;color:var(--muted);margin-top:8px}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--pc);margin-right:5px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
+.stats b{display:block;font-size:1.5rem}
+.stats small{color:var(--muted);font-size:.8rem}
+.bar{display:grid;grid-template-columns:9.5em 1fr 2em;align-items:center;gap:8px;font-size:.88rem;margin:6px 0}
+.bar i{display:block;height:10px;border-radius:5px;background:var(--accent);min-width:3px}
+.bar em{font-style:normal;color:var(--muted);text-align:right}
+.empty{color:var(--muted);text-align:center;padding:18px 0}
+
+/* Einträge */
+.entry{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;background:var(--surface);border-radius:16px;padding:12px;margin-top:8px}
+.badge{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:700;background:var(--c)}
+.entry .when{font-weight:650}
+.entry .what{color:var(--muted);font-size:.88rem}
+.del{border:none;background:none;color:var(--danger);font-size:.88rem;padding:6px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.tools button,.tools label{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:9px 12px;font-size:.9rem;cursor:pointer}
+
+.toast{
+  position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);
+  background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-weight:650;
+  opacity:0;pointer-events:none;transition:opacity .2s, transform .2s;z-index:30
+}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+
+<!-- ERFASSEN -->
+<section id="v-add">
+  <h1>Kopfweh notieren</h1>
+  <p class="sub">Stärke wählen, Stelle antippen, speichern.</p>
+
+  <h2>Wie stark?</h2>
+  <div class="scale" id="scale"></div>
+  <div class="scale-ends"><span>1 ganz leicht</span><span>10 ganz doll</span></div>
+
+  <h2>Wo?</h2>
+  <div class="headwrap">
+    <svg id="head" viewBox="0 0 200 250" role="group" aria-label="Kopf von oben">
+      <defs><clipPath id="hc"><ellipse cx="100" cy="132" rx="78" ry="100"/></clipPath></defs>
+      <path class="deco" d="M89 36 L100 12 L111 36 Z"/>
+      <ellipse class="deco" cx="20" cy="132" rx="8" ry="20"/>
+      <ellipse class="deco" cx="180" cy="132" rx="8" ry="20"/>
+      <g clip-path="url(#hc)">
+        <rect class="z" data-loc="vl" x="0" y="0" width="100" height="88"/>
+        <rect class="z" data-loc="vr" x="100" y="0" width="100" height="88"/>
+        <rect class="z" data-loc="sl" x="0" y="88" width="50" height="92"/>
+        <rect class="z" data-loc="ol" x="50" y="88" width="50" height="92"/>
+        <rect class="z" data-loc="or" x="100" y="88" width="50" height="92"/>
+        <rect class="z" data-loc="sr" x="150" y="88" width="50" height="92"/>
+        <rect class="z" data-loc="hl" x="0" y="180" width="100" height="70"/>
+        <rect class="z" data-loc="hr" x="100" y="180" width="100" height="70"/>
+      </g>
+      <circle class="z" data-loc="al" cx="72" cy="66" r="14"/>
+      <circle class="z" data-loc="ar" cx="128" cy="66" r="14"/>
+      <ellipse class="outline" cx="100" cy="132" rx="78" ry="100"/>
+      <text x="62" y="45">Stirn</text><text x="138" y="45">Stirn</text>
+      <text x="72" y="66">Auge</text><text x="128" y="66">Auge</text>
+      <text x="76" y="134">oben</text><text x="124" y="134">oben</text>
+      <text x="38" y="134" transform="rotate(-90 38 134)">Seite</text>
+      <text x="162" y="134" transform="rotate(90 162 134)">Seite</text>
+      <text x="70" y="206">hinten</text><text x="130" y="206">hinten</text>
+      <text class="lr" x="8" y="20">L</text><text class="lr" x="192" y="20">R</text>
+    </svg>
+    <p class="caption">Kopf von oben gesehen, Nase zeigt nach oben</p>
+  </div>
+  <div class="chips" id="locchips" style="margin-top:12px"></div>
+  <input type="text" id="other" placeholder="Andere Stelle (optional)" autocomplete="off">
+
+  <h2>Zyklusphase</h2>
+  <div class="chips" id="phasechips"></div>
+
+  <h2>Wann?</h2>
+  <input type="datetime-local" id="when">
+
+  <button class="primary" id="save" disabled>Eintrag speichern</button>
+</section>
+
+<!-- VERLAUF -->
+<section id="v-chart" hidden>
+  <h1>Verlauf</h1>
+  <div class="seg" id="ranges" style="margin-top:12px">
+    <button data-r="1">24 Std.</button><button data-r="7" class="on">7 Tage</button>
+    <button data-r="30">30 Tage</button><button data-r="60">2 Monate</button><button data-r="all">Gesamt</button>
+  </div>
+  <div class="card">
+    <canvas id="chart"></canvas>
+    <div class="legend" id="legend"></div>
+  </div>
+  <div class="card"><div class="stats" id="stats"></div></div>
+  <div class="card"><h2 style="margin-top:0">Häufigste Stellen</h2><div id="locstats"></div></div>
+  <div class="card"><h2 style="margin-top:0">Nach Zyklusphase</h2><div id="phasestats"></div></div>
+</section>
+
+<!-- EINTRÄGE -->
+<section id="v-list" hidden>
+  <h1>Einträge</h1>
+  <p class="sub">Alle Daten liegen nur auf diesem Gerät.</p>
+  <div class="tools">
+    <button id="exp">Backup speichern</button>
+    <label>Backup laden<input type="file" id="imp" accept="application/json,.json" hidden></label>
+  </div>
+  <div id="list"></div>
+</section>
+
+</main>
+
+<nav id="tabs">
+  <button data-v="add" class="on"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Notieren</button>
+  <button data-v="chart"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M7 15l4-5 3 3 5-6"/></svg>Verlauf</button>
+  <button data-v="list"><svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Einträge</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY = 'kopfweh-v1';
+const LOCS = {
+  vl:'Vorne links', vr:'Vorne rechts', al:'Hinterm Auge links', ar:'Hinterm Auge rechts',
+  ol:'Oben links', or:'Oben rechts', sl:'Seitlich links', sr:'Seitlich rechts',
+  hl:'Hinten links', hr:'Hinten rechts'
+};
+const PHASES = {
+  '':'Keine Angabe', mens:'Menstruation', foll:'Follikelphase', ovu:'Eisprung', lut:'Lutealphase'
+};
+const PHCOL = {'':'--ph-none', mens:'--ph-mens', foll:'--ph-foll', ovu:'--ph-ovu', lut:'--ph-lut'};
+const $ = s => document.querySelector(s);
+const iColor = i => `hsl(${Math.round(120 - (i-1)*120/9)} 62% ${i>6?42:44}%)`;
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+let entries = load();
+let state = { intensity:0, locs:new Set(), phase:'' };
+let range = '7';
+
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){ return []; } }
+function persist(){
+  try{ localStorage.setItem(KEY, JSON.stringify(entries)); return true; }
+  catch(e){ toast('Speichern fehlgeschlagen'); return false; }
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),1800); }
+const pad = n => String(n).padStart(2,'0');
+function localInput(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function fmt(ts){ const d=new Date(ts); return d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'2-digit'})+', '+pad(d.getHours())+':'+pad(d.getMinutes())+' Uhr'; }
+const de1 = n => n.toFixed(1).replace('.',',');
+
+/* ---------- Erfassen ---------- */
+const scale = $('#scale');
+for(let i=1;i<=10;i++){
+  const b=document.createElement('button'); b.textContent=i; b.style.setProperty('--c',iColor(i));
+  b.setAttribute('aria-label','Stärke '+i);
+  b.onclick=()=>{ state.intensity=i; [...scale.children].forEach((c,k)=>c.classList.toggle('on',k===i-1)); $('#save').disabled=false; };
+  scale.appendChild(b);
+}
+const locchips = $('#locchips');
+Object.entries(LOCS).forEach(([k,v])=>{
+  const b=document.createElement('button'); b.className='chip'; b.dataset.loc=k; b.textContent=v;
+  locchips.appendChild(b);
+});
+document.querySelectorAll('[data-loc]').forEach(el=>el.addEventListener('click',()=>toggleLoc(el.dataset.loc)));
+function toggleLoc(k){
+  state.locs.has(k) ? state.locs.delete(k) : state.locs.add(k);
+  document.querySelectorAll(`[data-loc="${k}"]`).forEach(el=>el.classList.toggle('on',state.locs.has(k)));
+}
+const phasechips = $('#phasechips');
+Object.entries(PHASES).forEach(([k,v])=>{
+  const b=document.createElement('button'); b.className='chip'+(k===''?' on':''); b.dataset.ph=k;
+  b.innerHTML=`<span class="dot" style="--pc:var(${PHCOL[k]})"></span>${v}`;
+  b.onclick=()=>{ state.phase=k; phasechips.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.ph===k)); };
+  phasechips.appendChild(b);
+});
+$('#when').value = localInput(new Date());
+
+$('#save').onclick=()=>{
+  if(!state.intensity) return;
+  const w=$('#when').value; const ts = w ? new Date(w).getTime() : Date.now();
+  entries.push({ id:Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts,
+    intensity:state.intensity, locs:[...state.locs], other:$('#other').value.trim(), phase:state.phase });
+  if(!persist()){ entries.pop(); return; }
+  toast('Eintrag gespeichert');
+  // Formular zurücksetzen, Zyklusphase bleibt stehen
+  state.intensity=0; [...scale.children].forEach(c=>c.classList.remove('on'));
+  state.locs.clear(); document.querySelectorAll('[data-loc]').forEach(el=>el.classList.remove('on'));
+  $('#other').value=''; $('#when').value=localInput(new Date()); $('#save').disabled=true;
+  window.scrollTo({top:0});
+};
+
+/* ---------- Tabs ---------- */
+$('#tabs').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  ['add','chart','list'].forEach(v=>$('#v-'+v).hidden = v!==b.dataset.v);
+  if(b.dataset.v==='add') $('#when').value=localInput(new Date());
+  if(b.dataset.v==='chart') renderChart();
+  if(b.dataset.v==='list') renderList();
+  window.scrollTo({top:0});
+});
+
+/* ---------- Verlauf ---------- */
+$('#ranges').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  range=b.dataset.r; $('#ranges').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  renderChart();
+});
+function bounds(){
+  const now=Date.now();
+  const maxTs = entries.reduce((m,e)=>Math.max(m,e.ts), now);
+  if(range==='all'){
+    if(!entries.length) return [now-864e5, now];
+    let from=Math.min(...entries.map(e=>e.ts));
+    if(maxTs-from < 36e5) from = maxTs - 12*36e5;
+    return [from, maxTs];
+  }
+  return [now - Number(range)*864e5, Math.max(now, maxTs)];
+}
+function renderChart(){
+  const [from,to]=bounds();
+  const data=entries.filter(e=>e.ts>=from && e.ts<=to).sort((a,b)=>a.ts-b.ts);
+  drawChart(data,from,to); renderStats(data);
+}
+function drawChart(data,from,to){
+  const c=$('#chart'), w=c.clientWidth, h=230, dpr=window.devicePixelRatio||1;
+  c.width=w*dpr; c.height=h*dpr; const g=c.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+  const muted=cssVar('--muted'), line=cssVar('--line'), accent=cssVar('--accent');
+  const L=26,R=10,T=10,B=26, pw=w-L-R, ph=h-T-B;
+  const x=t=>L+(t-from)/((to-from)||1)*pw, y=v=>T+ph-v/10*ph;
+  g.font='11px ui-rounded, system-ui, sans-serif'; g.textBaseline='middle';
+  for(let v=0; v<=10; v+=2){
+    g.strokeStyle=line; g.lineWidth=1; g.beginPath(); g.moveTo(L,y(v)); g.lineTo(w-R,y(v)); g.stroke();
+    if(v){ g.fillStyle=muted; g.textAlign='right'; g.fillText(v, L-6, y(v)); }
+  }
+  const span=to-from, ticks=4; g.textAlign='center'; g.fillStyle=muted;
+  for(let i=0;i<=ticks;i++){
+    const t=from+span*i/ticks, d=new Date(t);
+    const lab = span<=2*864e5 ? pad(d.getHours())+':'+pad(d.getMinutes()) : pad(d.getDate())+'.'+pad(d.getMonth()+1)+'.';
+    g.textAlign = i===0 ? 'left' : i===ticks ? 'right' : 'center';
+    g.fillText(lab, x(t), h-10);
+  }
+  if(!data.length){
+    g.textAlign='center'; g.fillStyle=muted; g.font='14px ui-rounded, system-ui, sans-serif';
+    g.fillText('Keine Einträge in diesem Zeitraum', L+pw/2, T+ph/2); 
+  } else {
+    g.strokeStyle=accent; g.globalAlpha=.45; g.lineWidth=2; g.lineJoin='round'; g.beginPath();
+    data.forEach((e,i)=> i? g.lineTo(x(e.ts),y(e.intensity)) : g.moveTo(x(e.ts),y(e.intensity)));
+    g.stroke(); g.globalAlpha=1;
+    const r = data.length>80 ? 3.5 : 5;
+    data.forEach(e=>{
+      g.fillStyle=cssVar(PHCOL[e.phase||'']); g.beginPath(); g.arc(x(e.ts),y(e.intensity),r,0,Math.PI*2); g.fill();
+      g.strokeStyle=cssVar('--surface'); g.lineWidth=1.5; g.stroke();
+    });
+  }
+  $('#legend').innerHTML = Object.entries(PHASES).map(([k,v])=>`<span style="--pc:var(${PHCOL[k]})">${v}</span>`).join('');
+}
+function renderStats(data){
+  if(!data.length){
+    $('#stats').innerHTML='<div class="empty" style="grid-column:1/-1">Noch nichts erfasst</div>';
+    $('#locstats').innerHTML=$('#phasestats').innerHTML='<div class="empty">–</div>'; return;
+  }
+  const avg=data.reduce((s,e)=>s+e.intensity,0)/data.length;
+  const days=new Set(data.map(e=>new Date(e.ts).toDateString())).size;
+  $('#stats').innerHTML=`<div><b>${data.length}</b><small>Einträge</small></div>
+    <div><b>${de1(avg)}</b><small>Ø Stärke</small></div><div><b>${days}</b><small>Tage mit Kopfweh</small></div>`;
+  const cnt={}; data.forEach(e=>{ e.locs.forEach(l=>cnt[l]=(cnt[l]||0)+1); if(e.other) cnt['_o']=(cnt['_o']||0)+1; });
+  const rows=Object.entries(cnt).sort((a,b)=>b[1]-a[1]); const max=rows.length?rows[0][1]:1;
+  $('#locstats').innerHTML = rows.length ? rows.map(([k,n])=>
+    `<div class="bar"><span>${k==='_o'?'Andere Stelle':LOCS[k]}</span><i style="width:${n/max*100}%"></i><em>${n}</em></div>`).join('')
+    : '<div class="empty">Keine Stellen angegeben</div>';
+  const ph={}; data.forEach(e=>{ const k=e.phase||''; (ph[k]=ph[k]||[]).push(e.intensity); });
+  $('#phasestats').innerHTML = Object.keys(PHASES).filter(k=>ph[k]).map(k=>{
+    const a=ph[k], m=a.reduce((s,v)=>s+v,0)/a.length;
+    return `<div class="bar"><span><span class="dot" style="display:inline-block;width:9px;height:9px;border-radius:50%;background:var(${PHCOL[k]});margin-right:6px"></span>${PHASES[k]}</span><i style="width:${m*10}%;background:var(${PHCOL[k]})"></i><em>${de1(m)}</em></div>`;
+  }).join('') + '<p class="sub" style="margin-top:8px">Balken = Ø Stärke je Phase</p>';
+}
+window.addEventListener('resize',()=>{ if(!$('#v-chart').hidden) renderChart(); });
+
+/* ---------- Einträge ---------- */
+function renderList(){
+  const el=$('#list'); const sorted=[...entries].sort((a,b)=>b.ts-a.ts);
+  if(!sorted.length){ el.innerHTML='<div class="empty">Noch keine Einträge. Tippe unten auf „Notieren“.</div>'; return; }
+  el.innerHTML = sorted.map(e=>{
+    const where=[...e.locs.map(l=>LOCS[l]), e.other].filter(Boolean).join(', ') || 'Keine Stelle angegeben';
+    const phase=e.phase ? `<br>${PHASES[e.phase]}` : '';
+    return `<div class="entry"><div class="badge" style="--c:${iColor(e.intensity)}">${e.intensity}</div>
+      <div><div class="when">${fmt(e.ts)}</div><div class="what">${esc(where)}${phase}</div></div>
+      <button class="del" data-id="${e.id}">Löschen</button></div>`;
+  }).join('');
+}
+function esc(s){ return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+$('#list').addEventListener('click',e=>{
+  const b=e.target.closest('.del'); if(!b) return;
+  if(!confirm('Diesen Eintrag löschen?')) return;
+  entries=entries.filter(x=>x.id!==b.dataset.id); persist(); renderList(); toast('Eintrag gelöscht');
+});
+$('#exp').onclick=()=>{
+  const blob=new Blob([JSON.stringify(entries,null,1)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='kopfweh-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+};
+$('#imp').onchange=async ev=>{
+  const f=ev.target.files[0]; if(!f) return;
+  try{
+    const arr=JSON.parse(await f.text()); if(!Array.isArray(arr)) throw 0;
+    const ids=new Set(entries.map(e=>e.id)); let n=0;
+    arr.forEach(e=>{ if(e && e.id && e.ts && e.intensity && !ids.has(e.id)){ entries.push({locs:[],other:'',phase:'',...e}); n++; } });
+    persist(); renderList(); toast(n+' Einträge geladen');
+  }catch(e){ toast('Datei ist kein gültiges Backup'); }
+  ev.target.value='';
+};
+</script>
+</body>
+</html>
